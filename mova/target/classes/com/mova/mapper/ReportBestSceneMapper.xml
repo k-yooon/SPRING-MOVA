@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mova.mapper.ReportBestSceneMapper">
+
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+			<foreach item="type" collection="typeArr">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'T'.toString()">
+							title LIKE '%'||#{keyword}||'%'
+						</when>
+						<when test="type == 'C'.toString()">
+							content LIKE '%'||#{keyword}||'%'
+						</when>
+						<when test="type == 'W'.toString()">
+							writer LIKE '%'||#{keyword}||'%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+
+	<resultMap type="com.mova.domain.ReportBestSceneVO"
+		id="reportbestscene">
+		<id column="bsno" property="bsno" />
+		<result column="rebsno" property="rebsno" />
+		<result column="reporter" property="reporter" />
+		<association javaType="com.mova.domain.BestSceneVO"
+			property="bestscene">
+			<id column="bsno" property="bsno" />
+			<result column="content" property="content" />
+			<result column="userid" property="userId" />
+		</association>
+	</resultMap>
+
+	<select id="getListWithPaging" resultMap="reportbestscene">
+	 <![CDATA[
+	select r.rebsno, r.bsno, r.reporter, b.content, b.userid
+	from (
+	      SELECT /*+INDEX_DESC(reportbestscene SYS_C007380)*/ rownum rn, rebsno, bsno, reporter
+	        FROM  reportbestscene 
+	      where rownum <= #{pageNum} * #{amount}
+	      ) r
+	JOIN bestscene b
+	ON  r.bsno = b.bsno        
+	where rn > (#{pageNum}-1) * #{amount}
+	]]>
+	</select>
+
+	<select id="getTotalCount" resultType="int">
+		SELECT COUNT(*) FROM reportbestscene
+		WHERE
+		<!-- 보관해 둔 쿼리 사용 -->
+		<include refid="criteria"></include>
+		rebsno > 0
+	</select>
+	
+	   <delete id="delete">
+      DELETE FROM bestscene WHERE bsno = #{bsno}
+   </delete>
+
+	
+
+</mapper>

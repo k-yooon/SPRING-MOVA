@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mova.mapper.MemberMapper">	
+
+<resultMap type="com.mova.domain.AuthVO" id="authMap">
+	<result property="userid" column="userid"/>	
+	<result property="auth" column="auth"/>
+</resultMap>
+
+<resultMap type="com.mova.domain.MemberVO" id="memberMap">
+	<id property="userid" column="userid"/>
+	<result property="userid" column="userid"/>		<!-- property는 VO변수명, column은 DB내 속성 이름  -->
+	<result property="userpw" column="userpw"/>
+	<result property="usernm" column="usernm"/>
+	<result property="regDate" column="regdate"/>
+	<result property="tel" column="tel"/>
+	<result property="birth" column="birth"/>
+	<result property="email" column="email"/>
+	<result property="gender" column="gender"/>
+	<result property="fileName" column="fileName"/>
+	<result property="uuid" column="uuid"/>
+	<result property="uploadPath" column="uploadPath"/>
+	<collection property="authList" resultMap="authMap"></collection>
+	<collection property="commList" resultMap="commMap"></collection>
+   	<collection property="movieList" resultMap="movieMap"></collection>
+</resultMap>
+
+<!-- 회원 가입 -->
+<insert id="join">	
+	INSERT ALL 
+	INTO member(userid, userpw, tel, usernm, birth, email, gender, regdate, uuid, uploadPath, fileName)
+	values(#{userid}, #{userpw}, #{tel}, #{usernm}, #{birth}, #{email}, #{gender}, SYSDATE, #{uuid}, #{uploadPath}, #{fileName})
+	INTO member_auth(userid, auth) values(#{userid}, 'ROLE_MEMBER')
+	SELECT #{userid} AS userid, #{userpw} AS userpw, #{tel} AS tel, #{usernm} AS usernm, #{birth} AS birth, #{email} AS email, #{gender} AS gender, SYSDATE AS regdate, 'ROLE_MEMBER' AS auth
+	FROM dual
+</insert>
+
+<!-- 회원 정보 수정 -->
+<select id="memberInfoRead2" resultMap="memberMap">
+SELECT userid, userpw, usernm, tel, birth, email, gender, uuid, uploadPath, fileName 
+FROM member WHERE userid = #{userid}
+</select>
+
+<update id="memberUpdate">
+   UPDATE member SET tel = #{tel}, email = #{email}, uuid = #{uuid}, uploadPath = #{uploadPath}, fileName = #{fileName} WHERE userid = #{userid}
+</update>
+
+
+<!-- 회원 탈퇴 -->
+<delete id="memberDelete">
+	DELETE member WHERE userid= #{userid}
+</delete>
+
+<!-- 아이디 찾기 -->
+<select id="idFind" resultType="com.mova.domain.MemberVO">
+	SELECT * FROM member WHERE usernm = #{usernm} AND tel = #{tel}
+</select>
+
+<!-- PW 찾기 -->
+<select id="pwFind" resultType="com.mova.domain.MemberVO">
+	SELECT * FROM member WHERE userid = #{userid} AND tel = #{tel}
+</select>
+
+<!-- PW 찾기(업데이트) -->
+<update id="pwNew">
+	UPDATE member SET userpw = #{userpw} WHERE userid = #{userid}
+</update>
+
+<!-- 아이디 중복 체크 -->
+<select id="readAll" resultType="com.mova.domain.MemberVO">
+	SELECT * FROM member
+</select>
+
+<!-- 회원 끝 -->
+
+<resultMap type="com.mova.domain.MovieVO" id="movieMap">
+      <id property="mno" column="mno"/>
+      <result property="mname" column="mname" />
+      <result property="fileName" column="fileName" />
+      <result property="uuid" column="uuid" />
+      <result property="uploadPath" column="uploadPath" />
+</resultMap>
+
+<resultMap type="com.mova.domain.CommentVO" id="commMap">
+      <id property="cno" column="cno"/>
+      <result property="mno" column="mno" />
+      <result property="userid" column="userid" />
+      <result property="star" column="star" />
+</resultMap>
+
+<select id="read" resultMap="memberMap">
+	SELECT mem.userid, userpw, tel, usernm, birth, email, gender, regdate, auth 
+	FROM member mem LEFT OUTER JOIN member_auth auth ON mem.userid=auth.userid
+	WHERE mem.userid = #{userid}
+</select>
+
+<select id="memberInfoRead" resultMap="memberMap">
+   SELECT m.userid, c.star, mm.mname, mm.filename, mm.uploadpath, mm.uuid, mm.mno, mm.genre, mm.year
+    FROM member m join comm c on
+    m.userid = c.userid
+    join movie mm 
+    on c.mno = mm.mno
+    where m.userid = #{userid}
+    AND star = #{star}
+</select>
+
+<select id="get" resultType ="com.mova.domain.MemberVO">
+	select userid, usernm, tel, email
+	from member
+	where userid = #{userid}
+</select>
+
+<select id="getUserSearch" resultType="com.mova.domain.MemberVO">
+select * from member where (userid like '%'||#{keyword}||'%') 
+</select>
+
+<select id="getmember" resultType="com.mova.domain.MemberVO">
+select * from member where userid = #{userid}
+</select>
+
+
+</mapper>

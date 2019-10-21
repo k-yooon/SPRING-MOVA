@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.mova.mapper.MovieAttachMapper">
+
+  <delete id="deleteAll">
+  	DELETE FROM movieattach WHERE mno = #{mno}
+  </delete>
+  
+  <insert id="insert">
+  	insert into movieattach (uuid, uploadpath, filename, mno)
+  	values (#{uuid}, #{uploadPath}, #{fileName}, #{mno} )
+  </insert>
+  
+  <delete id="delete">
+  	DELETE FROM movieattach WHERE uuid = #{uuid}
+  </delete>
+  
+  <select id="findByMno" resultType="com.mova.domain.MovieAttachVO">
+  	SELECT * FROM movieattach WHERE mno = #{mno}
+  </select>
+  
+</mapper>
+

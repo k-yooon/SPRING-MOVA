@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mova.mapper.RecommendBoardMapper">
+
+<!-- 쿼리 보관 -->
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+			<foreach item="type" collection="typeArr">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'T'.toString()">
+							title LIKE '%'||#{keyword}||'%'
+						</when>
+						<when test="type == 'C'.toString()">
+							content LIKE '%'||#{keyword}||'%'
+						</when>
+						<when test="type == 'U'.toString()">
+							userid LIKE '%'||#{keyword}||'%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+
+<!-- 나의 게시글 조회 -->
+<select id = "getMyList" resultType="com.mova.domain.RecommendBoardVO">
+   SELECT * FROM recommend
+   WHERE userid = #{userid}
+   ORDER BY regdate desc
+</select>
+
+<select id="getListWithPaging"
+		resultType="com.mova.domain.RecommendBoardVO">
+   	<![CDATA[
+  		SELECT	reno, userid, title, content, regdate
+  		FROM	( SELECT 	/*+INDEX_DESC(recommend SYS_C007061)*/
+  							rownum rn, reno, title, content,	userid, regdate
+  				  FROM 		recommend
+  				  WHERE		
+  	]]>
+		<include refid="criteria"></include>
+  	<![CDATA[				rownum <= #{pageNum} * #{amount} )
+  		WHERE rn > (#{pageNum} - 1) * #{amount}
+  	]]>
+	</select>
+
+	<select id="getTotalCount" resultType="int">
+		SELECT COUNT(*) FROM recommend
+		WHERE
+		<!-- 보관해 둔 쿼리 사용 -->
+		<include refid="criteria"></include>
+		reno > 0
+	</select>
+
+	<update id="update">
+		UPDATE recommend
+		SET title = #{title}, userid= #{userid},
+		content = #{content}
+		WHERE reno = #{reno}
+	</update>
+
+	<delete id="delete">
+		DELETE FROM recommend WHERE reno = #{reno}
+	</delete>
+
+	<select id="read" resultType="com.mova.domain.RecommendBoardVO">
+		SELECT * FROM recommend WHERE reno = #{reno}
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO recommend(reno, userid, title, content, regdate)
+		VALUES(recommend_seq.nextval,#{userid}, #{title}, #{content}, sysdate)
+	</insert>
+
+	<select id="getList"
+		resultType="com.mova.domain.RecommendBoardVO">
+  	<![CDATA[
+  		SELECT * FROM recommend WHERE reno > 0
+  	]]>
+	</select>
+
+</mapper>

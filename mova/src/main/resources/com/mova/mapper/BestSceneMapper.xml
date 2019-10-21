@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mova.mapper.BestSceneMapper">
+   <insert id = "insert">
+      INSERT INTO bestscene(bsno, mno, userid, content, fileName, uuid, uploadPath)
+      VALUES(best_scene_seq.NEXTVAL, #{mno}, #{userid}, #{content}, #{fileName}, #{uuid}, #{uploadPath})
+   </insert>
+   
+   <select id = "getList" resultType="com.mova.domain.BestSceneVO">
+      SELECT * FROM bestscene WHERE mno = #{mno}
+      ORDER BY regdate desc
+   </select>
+   
+   <delete id="delete">
+      DELETE FROM bestscene WHERE bsNo = #{bsNo}
+   </delete>
+   
+   
+   <update id="update">
+      UPDATE bestscene
+      SET content = #{content}
+      WHERE bsno = #{bsno}
+   </update>
+   
+   <select id="get" resultType="com.mova.domain.BestSceneVO">
+      SELECT * FROM bestscene 
+      WHERE bsNo = #{bsNo}
+   </select>
+
+  
+<insert id="reportInsert">
+	INSERT INTO reportbestscene(rebsno, bsno, reporter) VALUES(report_bestscene_seq.nextval, #{bsNo}, #{reporter})
+</insert>
+  
+</mapper>

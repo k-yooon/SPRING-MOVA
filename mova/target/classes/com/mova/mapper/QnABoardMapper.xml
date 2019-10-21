@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mova.mapper.QnABoardMapper">
+
+<!-- 나의 게시글 조회 -->
+<select id = "getMyList" resultType="com.mova.domain.QnABoardVO">
+	SELECT * FROM qna
+	WHERE userid = #{userid}
+</select>
+
+<select id="getList" resultType="com.mova.domain.QnABoardVO">
+<![CDATA[
+	select qno, userid, title, content, regdate, answer
+	  from (select /*+INDEX_DESC(qna pk_qna) */
+		            rownum rn, qno, userid, title, content, regdate, answer
+		    from    qna 
+	        where 	rownum <= #{pageNum} * #{amount} 
+	)
+	where rn > (#{pageNum} -1) * #{amount}
+]]> 	
+</select> 
+<select id ="getTotalCount" resultType="int">
+	select count(*) from qna where qno > 0
+</select>
+
+<insert id="insert">
+	<selectKey keyProperty="qno" resultType="int" order="BEFORE">
+		select qna_seq.nextval + 1 FROM dual
+	</selectKey>
+  	insert into qna (qno, userid, title, content, regdate)
+  	values (#{qno}, #{userid}, #{title}, #{content}, sysdate)
+</insert>
+
+   <select id="read" resultType="com.mova.domain.QnABoardVO">
+  	select * from qna where qno = #{qno}
+  </select>
+  
+  
+  <delete id="delete">
+  	delete from qna
+  	where  qno = #{qno}
+  </delete>
+  
+<update id="update">
+  	update	qna 
+  	set		title = #{title},
+  			content = #{content},
+  			regdate = SYSDATE
+  	where  	qno = #{qno}
+</update>
+
+<update id ="answer">
+	update qna
+	set answer = #{answer}
+	where qno = #{qno}
+</update>
+
+</mapper>

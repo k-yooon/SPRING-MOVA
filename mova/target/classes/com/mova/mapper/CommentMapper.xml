@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mova.mapper.CommentMapper">
+
+<select id="getList" resultType="com.mova.domain.CommentVO">
+	select * from comm where mno = #{mno} order by 
+	  <choose>
+    	<when test="keyword.equals('date')">
+			regdate desc
+		</when>
+    	<when test="keyword.equals('starD')">
+      		star desc
+    	</when> 
+    	<when test="keyword.equals('starA')">
+      		star asc
+    	</when>
+    	<when test="keyword.equals('like')">
+      		joa desc
+    	</when>
+  	</choose>
+</select>
+
+<select id="getTotalComm" resultType="int">
+	select count(*) from comm where mno = #{mno}
+</select>
+
+<select id="getMyComm" resultType="com.mova.domain.CommentVO">
+	select cno, mno, userid, star, content, regdate from comm where mno = #{mno} and userid = #{userid}
+</select>
+
+<resultMap type="com.mova.domain.CommentVO" id="myCommList">
+      <id column="mno" property="mno" />
+      <result column="cno" property="cno" />
+      <result column="userid" property="userid" />
+      <result column="star" property="star" />
+      <result column="content" property="content" />
+      <result column="regdate" property="regdate" />
+      <association javaType="com.mova.domain.MovieVO" property="movie">
+         <id column="mno" property="mno" />
+         <result column="mname" property="mname" />
+         <result column="filename" property="fileName" />
+         <result column="uuid" property="uuid" />
+         <result column="uploadpath" property="uploadPath" />
+         <result column="year" property="year" />
+         <result column="genre" property="genre" />
+      </association>
+</resultMap>
+
+<select id="getMyAllComm" resultMap="myCommList">
+	select c.cno, c.mno, c.userid, c.star, c.content, c.regdate, c.joa, m.mname, m.filename, m.uuid, m.uploadpath, m.year, m.genre
+	from comm c, movie m 
+	where c.mno = m.mno and c.userid = #{userid} order by 
+	<choose>
+    	<when test="keyword.equals('date')">
+			c.regdate desc
+		</when>
+    	<when test="keyword.equals('starD')">
+      		c.star desc
+    	</when> 
+    	<when test="keyword.equals('starA')">
+      		c.star asc
+    	</when>
+  	</choose>
+</select>
+
+<insert id="insert">
+	INSERT INTO comm(cno, mno, userid, star, content, regdate, genre, joa)
+	VALUES(comm_seq.nextval, #{mno}, #{userid}, #{star}, #{content}, sysdate, #{genre}, default)
+</insert>
+
+<delete id="delete">
+	DELETE FROM comm WHERE cno = #{cno}
+</delete>
+
+<update id="update">
+	UPDATE comm SET star = #{star}, content = #{content} WHERE cno = #{cno}
+</update>
+
+<!-- 별점별 코멘트 갯수 -->
+<select id="getStarCount" resultType="com.mova.domain.CommentVO">
+	select count(star) count, star from comm where userid = #{userid} group by star order by star
+</select>
+
+<!-- 별점별 코멘트 총 갯수 조회 -->
+<select id="getTotalCommById" resultType="int">
+	select count(*) from comm where userid = #{userid}
+</select>
+
+<!-- 평균 별점 조회 -->
+<select id="getStarAvgById" resultType="double">
+	select ROUND(avg(star), 1) from comm where userid = #{userid}
+</select>
+
+<!-- 가장 많이 준 별점 조회 -->
+<select id="getMuchStarById" resultType="int">
+<![CDATA[
+	select star from (select count(star), star from comm where userid = #{userid} group by star order by count(star) desc) where rownum <=1
+]]>
+</select>
+
+<insert id="reportInsert">
+	INSERT INTO reportcomm(rcno, cno, reporter) VALUES(report_comm_seq.nextval, #{cno}, #{reporter})
+</insert>
+
+<!-- 코멘트 좋아요 추가 -->
+<insert id="addCommJoa">
+	insert into commJoa values(commJoa_seq.nextval, #{cno}, #{userid})
+</insert>
+<!-- 코멘트 좋아요 체크 -->
+<select id="chkCommJoa" resultType="com.mova.domain.CommJoaVO">
+	select c.cno, c.userid, m.mno from commJoa c, comm m 
+	where c.cno = m.cno and m.mno = #{mno} and c.userid = #{userid}
+</select>
+<!-- 코멘트 좋아요 삭제 -->
+<delete id="deleteCommjoa">
+	DELETE FROM commJoa WHERE cno = #{cno} and userid = #{userid}
+</delete>
+<!-- 좋아요 수 업데이트 -->
+<update id="updateJoaCnt">
+	UPDATE comm SET joa = joa + #{amount} where cno = #{cno}
+</update>
+</mapper>

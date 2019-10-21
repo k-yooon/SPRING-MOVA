@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mova.mapper.EventMapper">	
+
+<insert id="insert">
+  	insert into event (eno, userid, title, startdate, enddate, uuid, uploadPath, fileName)
+  	values (event_seq.nextval, 'admin', #{title}, #{startdate}, #{enddate}, #{uuid}, #{uploadPath}, #{fileName})
+</insert>
+  
+<select id="read" resultType="com.mova.domain.EventVO">
+  	select * from event where eno = #{eno}
+</select>
+  
+<delete id="delete">
+  	delete from event where eno = #{eno}
+</delete>
+
+<select id="getListWithPaging" resultType="com.mova.domain.EventVO">
+<![CDATA[
+  	SELECT eno, userid, title, startdate, enddate, uuid, uploadPath, fileName
+	FROM ( SELECT rownum rn, eno, userid, title, startdate, enddate, uuid, uploadPath, fileName 
+	       FROM (select * from event where eno in (select distinct eno from eventwin) order by enddate desc) 
+	       WHERE rownum <= #{pageNum} * #{amount})
+  	WHERE rn > (#{pageNum} - 1) * #{amount}
+]]>
+</select>
+
+ <select id="getTotalCount" resultType="int">
+ 	select count(*) from event
+ </select>
+ 
+ <!-- 현재 진행 중인 이벤트 -->
+<select id="ingEvent" resultType="com.mova.domain.EventVO">
+<![CDATA[
+  	select * from event where to_char(startdate, 'yymmdd' ) <= to_char(sysdate, 'yymmdd')
+	and to_char(enddate, 'yymmdd' ) >= to_char(sysdate, 'yymmdd')
+]]>  	
+</select>
+
+<!-- 이벤트 참여 -->
+<insert id="eventJoin">
+  	insert into eventattend values(event_attend_seq.nextval, #{eno}, #{userid}, sysdate)
+</insert>
+
+<!-- 이벤트 참여 확인 -->
+<select id="eventChk" resultType="com.mova.domain.EventVO">
+  	select * from eventattend where userid = #{userid} and eno = #{eno}
+</select>
+
+<!-- 추첨할 이벤트 조회 -->
+<select id="pickEvent" resultType="com.mova.domain.EventVO">
+<![CDATA[
+  	select * from event
+  	where to_char(enddate, 'yymmdd' ) < to_char(sysdate, 'yymmdd')
+	and extract(month from sysdate) = extract(month from enddate)
+]]>	
+</select>  
+
+<!-- 당첨자 랜덤 추출 -->
+<select id="pickMember" resultType="com.mova.domain.EventVO">
+<![CDATA[
+select eno, userid from (select * from eventattend where eno = #{eno} order by dbms_random.value) 
+where rownum <= 5
+]]>	
+</select>  
+
+<!-- 당첨자 테이블에 추가 -->
+<insert id="insertMember">
+  	insert into eventwin values(event_win_seq.nextval, #{eno}, #{userid}, sysdate)
+</insert>
+
+<!-- 당첨자 조회 -->
+<select id="getPickMem" resultType="com.mova.domain.MemberVO">
+	select userid, tel, usernm, email from member where userid in (select userid from eventwin where eno = #{eno})
+</select>
+
+ </mapper> 

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mova.mapper.RecommendBoardReplyMapper">
+
+	<select id="getCountByReno" resultType="int">
+		SELECT COUNT(rereno) FROM
+		recommendreply WHERE reno = #{reno}
+	</select>
+
+	<select id="getListWithPaging"
+		resultType="com.mova.domain.RecommendBoardReplyVO">
+		 	<![CDATA[
+	  		SELECT	rereno, reno, userid, content, regdate
+	  		FROM	( SELECT 	/*+INDEX(recommendreply  idx_reply)*/
+	  							rownum rn, rereno, reno,userid,  content,regdate
+	  				  FROM 		recommendreply
+	  				  WHERE		reno= #{reno}
+	  				  AND		rereno > 0
+	  				  AND		rownum <= #{cri.pageNum} * #{cri.amount} 
+	  				)
+	  		WHERE rn > (#{cri.pageNum} - 1) * #{cri.amount}
+	  	]]>
+	</select>
+
+	<update id="update">
+		UPDATE recommendreply
+		SET content = #{content}
+		WHERE
+		rereno = #{rereno}
+	</update>
+
+	<delete id="delete">
+		DELETE FROM recommendreply WHERE rereno = #{rereno}
+	</delete>
+
+	<select id="read"
+		resultType="com.mova.domain.RecommendBoardReplyVO">
+		SELECT * FROM recommendreply WHERE rereno = #{rereno}
+	</select>
+
+	<insert id="insert">
+		INSERT INTO recommendreply(rereno, reno, userid,
+		content, regdate)
+		VALUES(recomm_reply_seq.nextval, #{reno}, #{userid},
+		#{content}, SYSDATE)
+	</insert>
+</mapper>
+
+
+
+
+

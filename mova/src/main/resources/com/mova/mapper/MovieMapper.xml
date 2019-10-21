@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mova.mapper.MovieMapper">	
+
+<!-- 쿼리 변수에 저장 -->
+<sql id ="criteria">
+		<trim prefix="(" suffix=") " prefixOverrides="OR">
+			<foreach item="type" collection="typeArr">
+			<trim prefix="OR">
+				<choose>
+					<when test="type == 'N'.toString()">
+						mname like '%'||#{keyword}||'%'
+					</when>
+					<when test="type == 'A'.toString()">
+						actor like '%'||#{keyword}||'%'
+					</when>
+					<when test="type == 'D'.toString()">
+						director like '%'||#{keyword}||'%'
+					</when>
+				</choose>
+				</trim>
+			</foreach>
+		</trim>	
+</sql>	
+
+<sql id="criteriaa">
+  	<trim prefix="(" suffix=") AND " 
+  			  prefixOverrides="OR">
+  			<foreach item="type" collection="typeArr">
+  				<trim prefix="OR">
+  					<choose>
+  						<when test="type == 'T'.toString()">
+  							mname   LIKE '%'||#{keyword}||'%'
+  						</when>
+  						<when test="type == 'C'.toString()">
+  							genre LIKE '%'||#{keyword}||'%'
+  						</when>
+  						<when test="type == 'W'.toString()">
+  							director  LIKE '%'||#{keyword}||'%'
+  						</when>
+  						<when test="type == 'B'.toString()">
+  							actor LIKE '%'||#{keyword}||'%'
+  						</when>
+  					</choose>
+  				</trim>
+  			</foreach>	  
+  		</trim>
+  </sql>
+  
+<select id="readMovie" resultType="com.mova.domain.MovieVO">
+SELECT * FROM movie WHERE mno = #{mno}
+</select>
+
+<select id="getMovieStar" resultType="com.mova.domain.MovieVO">
+<![CDATA[
+select * from (select * from movie where avgstar is not null order by avgstar desc) where rownum <=20 
+]]>
+</select>
+
+<select id="getMovieGenre" resultType="com.mova.domain.MovieVO">
+<![CDATA[
+select * from (select * from movie where avgstar is not null and genre=#{genre} order by avgstar desc) where rownum <=20 
+]]>
+</select>
+
+<select id="getMovieSearch" resultType="com.mova.domain.MovieVO">
+select * from movie where
+<include refid="criteria"></include> 
+order by avgstar
+</select>
+
+<!-- 추천 영화 조회 -->
+<select id="getRecommendMovie" resultType="com.mova.domain.MovieVO">
+<![CDATA[
+select * from movie where genre IN 
+(
+    select genre
+    from 
+    (
+        select genre from comm where userid = #{userid} group by genre having count(genre) >= 10 order by avg(star) desc
+    ) 
+    where rownum <= 1
+) 
+and mno not in (select mno from comm where userid = #{userid}) 
+and rownum <= 20
+and avgstar is not null
+order by avgstar desc
+]]>
+</select>
+
+<!-- 선호하는 국가(영화추천) -->
+<select id="getMovieNation" resultType="com.mova.domain.MovieVO">
+	select count(nation) count, nation from movie where mno IN 
+	(select mno from comm where userid = #{userid}) group by nation order by count(nation) desc
+</select>
+
+<select id="getNationCt" resultType="int">
+	select count(DISTINCT(nation)) from movie
+</select>
+
+<!-- 선호하는 장르(영화추천) -->
+<select id="getGenre" resultType="com.mova.domain.CommentVO">
+	select count(genre) count, genre from comm where userid = #{userid} group by genre order by count(genre) desc
+</select>
+
+<!-- 선호도 분석 / 장르 가져오기-->
+<select id="genreGetByAge" resultType="com.mova.domain.MovieVO">
+<![CDATA[
+	select genre, avg(star), count(genre) from comm where userid IN (select userid
+	from (select userid ,substr(case when substr(birth,8,1) in ('1','2')
+                  then '19' || substr(birth,1,6)
+                  when  substr(birth,8,1) in ('3','4')
+                  then '20' || substr(birth,1,6)
+              end,1,4) "생년월일",birth, to_number(substr('20' || replace(to_char(current_date),'/',''),1,4),'9999') "현재"
+	from member) where "현재" - "생년월일" between #{start} and #{end})
+    group by genre
+    having count(genre) >= 10 
+    order by avg(star) desc
+]]>	
+</select>
+<resultMap type="com.mova.domain.MovieVO" id="movieList">
+      <id column="mno" property="mno" />
+      <result column="mname" property="mname" />
+      <result column="year" property="year" />
+      <result column="nation" property="nation" />
+      <result column="genre" property="genre" />
+      <result column="avgstar" property="avgstar" />
+	  <result column="uuid" property="uuid" />
+	  <result column="uploadPath" property="uploadPath" />
+	  <result column="fileName" property="fileName" />
+      <association javaType="com.mova.domain.CommentVO" property="comment">
+         <id column="mno" property="mno" />
+      </association>
+</resultMap>
+
+<!-- 선호도 분석 / top5 영화 -->
+<select id="movieGetByAge" resultMap="movieList">
+<![CDATA[
+	select c.mno, m.mname, m.year, m.nation, m.genre, m.avgstar, m.uuid, m.uploadpath, m.filename from movie m, 
+	(select mno, avg(star) avg from comm where userid IN 
+    (
+        select userid
+        from (select userid ,substr(case when substr(birth,8,1) in ('1','2')
+                      then '19' || substr(birth,1,6)
+                      when  substr(birth,8,1) in ('3','4')
+                      then '20' || substr(birth,1,6)
+                      end,1,4) "생년월일",birth, to_number(substr('20' || replace(to_char(current_date),'/',''),1,4),'9999') "현재"
+              from member) 
+        where "현재" - "생년월일" between #{start} and #{end}
+    )
+	group by mno 
+	having count(userid) >= 2
+	order by avg(star) desc) c
+	where c.mno = m.mno
+	and rownum <= 5
+]]>		
+</select>
+
+<select id="getListWithPaging" resultType="com.mova.domain.MovieVO">
+<![CDATA[
+	SELECT mno, mname, year, nation, genre, summary, director, actor, avgstar, fileName
+	FROM   ( SELECT  
+			         rownum rn, mno, mname, year, nation, genre, summary, director, actor, fileName, avgstar 
+	      FROM    (select * from movie order by mno desc) 
+	      WHERE
+		]]>
+  		<include refid="criteriaa"></include>
+  	<![CDATA[	rownum <= #{pageNum} * #{amount})
+  		WHERE rn > (#{pageNum} - 1) * #{amount}
+  	]]>
+</select>
+
+
+ <select id="getTotalCount" resultType="int">
+ 	select count(*) from movie where
+ 	<!-- 보관해 둔 쿼리 사용 -->
+  		<include refid="criteriaa"></include>
+ 	 mno > 0
+ </select>
+
+<insert id="insert">
+  	insert into movie (mno,mname,year,nation,genre,summary,director,actor,uuid,uploadpath,fileName)
+  	values (movie_seq.nextval, #{mname}, #{year} ,#{nation}, #{genre}, #{summary}, #{director}, #{actor}, #{uuid}, #{uploadPath}, #{fileName})
+</insert>
+  
+   <select id="read" resultType="com.mova.domain.MovieVO">
+  	select * from movie where mno = #{mno}
+  </select>
+  
+  <delete id="delete">
+  	delete from movie
+  	where  mno = #{mno}
+  </delete>
+  
+   
+  <update id="update">
+  	update	movie
+  	set		mname = #{mname},
+  			year = #{year},
+  			nation = #{nation},
+  			genre = #{genre},
+  			summary = #{summary},
+  			director = #{director},
+  			actor = #{actor},
+  			uuid = #{uuid},
+  			uploadPath = #{uploadPath},
+  			fileName = #{fileName}
+  	where  	mno = #{mno}
+  </update>
+  
+  <update id="deleteAll">
+  update movie 
+  set uuid = null, 
+  	  uploadpath = null,
+  	  filename = null
+  where mno = #{mno}
+ 
+  </update>
+
+</mapper>

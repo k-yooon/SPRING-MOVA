@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mova.mapper.FollowMapper">	
+<insert id="followInsert">
+	insert into follow values(#{userid}, #{follower})
+</insert>
+
+<select id="read" resultType="com.mova.domain.FollowVO">
+	SELECT * FROM follow WHERE userid = #{userid} AND follower = #{follower}
+</select>
+
+<delete id="followDelete">
+	DELETE FROM follow WHERE follower = #{follower} and userid = #{userid}
+</delete>
+
+<resultMap type="com.mova.domain.FollowVO" id="follow">
+      <id column="follower" property="follower" />
+      <result column="userid" property="userid" />
+      <association javaType="com.mova.domain.MemberVO" property="member">
+         <id column="userid" property="userid" />
+         <result column="fileName" property="fileName" />
+         <result column="uuid" property="uuid" />
+         <result column="uploadPath" property="uploadPath" />
+      </association>
+</resultMap>
+
+<resultMap type="com.mova.domain.FollowVO" id="follower">
+      <id column="userid" property="userid" />
+      <result column="follower" property="follower" />
+      <association javaType="com.mova.domain.MemberVO" property="member">
+         <id column="userid" property="userid" />
+         <result column="fileName" property="fileName" />
+         <result column="uuid" property="uuid" />
+         <result column="uploadPath" property="uploadPath" />
+      </association>
+</resultMap>
+
+<select id="getFollowing" resultMap="follow">
+	select f.follower, f.userid, m.fileName, m.uuid, m.uploadPath
+	from follow f, member m
+	where f.follower = m.userid and f.userid = #{userid}
+</select>
+
+<select id="getFollower" resultMap="follower">
+	select f.follower, f.userid, m.fileName, m.uuid, m.uploadPath
+	from follow f, member m
+	where f.userid = m.userid and f.follower = #{userid}
+</select>
+
+<select id="followingCount" resultType="com.mova.domain.FollowVO">
+	select count(*) count from follow where userid = #{userid}
+</select>
+
+<select id="followerCount" resultType="com.mova.domain.FollowVO">
+	select count(*) count from follow where follower = #{userid}
+</select>
+
+
+</mapper>
